@@ -101,6 +101,149 @@ A React application for managing icons on Notion pages, specifically designed fo
 
 The application will be available at `http://localhost:3000`
 
+## 🚀 Deployment to IONOS
+
+### Prerequisites
+- IONOS hosting account with Node.js support
+- SSH access to your IONOS server
+- Git installed on your IONOS server
+
+### Deployment Steps
+
+1. **Connect to Your IONOS Server**
+   ```bash
+   ssh username@your-ionos-server
+   ```
+
+2. **Create Application Directory**
+   ```bash
+   cd /var/www
+   mkdir notion-page-manager
+   cd notion-page-manager
+   ```
+
+3. **Clone Your Repository**
+   ```bash
+   git clone your-repository-url .
+   ```
+
+4. **Install Dependencies**
+   ```bash
+   npm install --production
+   ```
+
+5. **Create Environment File**
+   ```bash
+   nano .env
+   ```
+   Add your environment variables:
+   ```
+   NOTION_API_KEY=your_notion_integration_token
+   NOTION_DATABASE_ID=your_notion_database_id
+   PORT=8001
+   ```
+
+6. **Configure PM2 Process Manager**
+   ```bash
+   npm install -g pm2
+   pm2 start server.js --name "notion-page-manager"
+   pm2 save
+   pm2 startup
+   ```
+
+7. **Configure Nginx (if using)**
+   ```bash
+   sudo nano /etc/nginx/sites-available/notion-page-manager
+   ```
+   Add this configuration:
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       location / {
+           proxy_pass http://localhost:8001;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+8. **Enable the Site**
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/notion-page-manager /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+### Updating the Application
+
+1. **Pull Latest Changes**
+   ```bash
+   cd /var/www/notion-page-manager
+   git pull origin main
+   ```
+
+2. **Rebuild and Restart**
+   ```bash
+   npm install
+   npm run build
+   pm2 restart notion-page-manager
+   ```
+
+### Monitoring
+
+1. **View Application Logs**
+   ```bash
+   pm2 logs notion-page-manager
+   ```
+
+2. **Monitor Application Status**
+   ```bash
+   pm2 status
+   ```
+
+### Troubleshooting
+
+1. **Check Application Logs**
+   ```bash
+   pm2 logs notion-page-manager --lines 100
+   ```
+
+2. **Check Nginx Error Logs**
+   ```bash
+   sudo tail -f /var/log/nginx/error.log
+   ```
+
+3. **Verify Node.js Process**
+   ```bash
+   ps aux | grep node
+   ```
+
+### Important Notes
+
+1. **Security**
+   - Keep your `.env` file secure and never commit it to version control
+   - Use HTTPS for production (configure SSL in Nginx)
+   - Set up proper firewall rules
+
+2. **Backup**
+   - Regularly backup your `.env` file
+   - Consider setting up automated Git backups
+
+3. **Maintenance**
+   - Regularly update Node.js dependencies
+   - Monitor disk space and logs
+   - Set up log rotation
+
+4. **Performance**
+   - The application serves static files from the `build` directory
+   - Consider setting up a CDN for static assets
+   - Monitor server resources and scale if needed
+
 ## 🛠️ Development
 
 ### Running in Development Mode
