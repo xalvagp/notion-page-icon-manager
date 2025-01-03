@@ -12,7 +12,7 @@ A React application for managing icons on Notion pages, specifically designed fo
 ### 📋 Page Management
 - View all Notion pages in a responsive grid layout
 - Display page titles, descriptions, and current icons
-- Show page types and resources as badges
+- Show page types, labels, and resources as color-coded badges
 - Direct links to Notion pages
 
 ### 🎯 Individual Page Actions
@@ -33,13 +33,33 @@ A React application for managing icons on Notion pages, specifically designed fo
 - Skip pages that already have the calendar icon
 - Detailed feedback on operation results
 
+#### Create Monthly Pages
+- Create 12 monthly pages for a year at once
+- Each page automatically configured with:
+  * Calendar emoji (🗓️) as icon
+  * Type: "Nota"
+  * Resource: Calendars GDeP
+  * Label: "2026"
+  * Status: "To do"
+- Confirmation modal showing all properties
+- Real-time progress feedback
+- Automatic page list refresh after creation
+
 ### 💅 User Interface
 - Clean, modern design with Bootstrap
 - Responsive grid layout
-- Loading states for all actions
+- Enhanced loading states with spinners
+- Context-aware loading messages
 - Error handling with user-friendly messages
 - Confirmation modals for bulk actions
 - Bootstrap icons integration
+- Color-coded badges for different properties
+
+### 🔍 Properties Display
+- **Types**: Multi-select field shown as primary badges
+- **Labels**: Multi-select field with color-coded badges matching Notion colors
+- **Resources**: Relation field shown as success badges
+- **Status**: Select field integrated with page metadata
 
 ## 🚀 Getting Started
 
@@ -147,6 +167,11 @@ The application will be available at `http://localhost:3000`
 ### PUT `/api/notion-pages/icons`
 - Bulk updates icons for multiple pages
 - Requires array of page IDs and new icon in request body
+
+### POST `/api/notion-pages/bulk-create`
+- Creates 12 monthly pages with predefined properties
+- Automatically sets icon, type, resource, label, and status
+- Returns created pages information and success status
 
 ## 🤝 Contributing
 1. Fork the repository
