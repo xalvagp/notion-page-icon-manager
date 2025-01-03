@@ -50,6 +50,10 @@ app.get('/api/notion-pages', async (req, res) => {
       url: page.url,
       description: page.properties.Description?.rich_text[0]?.plain_text,
       types: page.properties.Type?.multi_select ? page.properties.Type.multi_select.map(ms => ms.name) : [],
+      labels: page.properties.Label?.multi_select ? page.properties.Label.multi_select.map(ms => ({
+        name: ms.name,
+        color: ms.color
+      })) : [],
       resources: page.properties.Resources?.relation?.map(rel => ({
         id: rel.id,
         name: "Calendars GDeP",
@@ -211,6 +215,81 @@ app.put('/api/notion-pages/icons', async (req, res) => {
   } catch (error) {
     console.error('Error updating icons:', error);
     res.status(500).json({ error: 'Failed to update icons' });
+  }
+});
+
+app.post('/api/notion-pages/bulk-create', async (req, res) => {
+  try {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    const results = await Promise.all(
+      months.map(async (month) => {
+        return notion.pages.create({
+          parent: {
+            database_id: process.env.NOTION_DATABASE_ID
+          },
+          icon: {
+            type: 'emoji',
+            emoji: '🗓️'
+          },
+          properties: {
+            Name: {
+              title: [
+                {
+                  text: {
+                    content: `${month} 2026`
+                  }
+                }
+              ]
+            },
+            Type: {
+              multi_select: [
+                {
+                  name: "Nota"
+                }
+              ]
+            },
+            Resources: {
+              relation: [
+                {
+                  id: "ddffe2a9-a7d8-4696-8ea9-3833bef50f59"
+                }
+              ]
+            },
+            Label: {
+              multi_select: [
+                {
+                  name: "2026"
+                }
+              ]
+            },
+            Status: {
+              select: {
+                name: "To do"
+              }
+            }
+          }
+        });
+      })
+    );
+
+    res.json({ 
+      success: true,
+      count: results.length,
+      pages: results.map(page => ({
+        id: page.id,
+        title: page.properties.Name.title[0].plain_text
+      }))
+    });
+  } catch (error) {
+    console.error('Error creating pages:', error);
+    res.status(500).json({ 
+      error: 'Failed to create pages',
+      details: error.message 
+    });
   }
 });
 

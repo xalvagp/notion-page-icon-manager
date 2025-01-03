@@ -4,6 +4,22 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './App.css';
 
+const getBootstrapColor = (notionColor) => {
+  const colorMap = {
+    blue: 'primary',
+    green: 'success',
+    red: 'danger',
+    yellow: 'warning',
+    pink: 'danger',
+    purple: 'purple',
+    gray: 'secondary',
+    orange: 'warning',
+    brown: 'dark',
+    default: 'info'
+  };
+  return colorMap[notionColor] || colorMap.default;
+};
+
 // Memoized PageCard component to prevent unnecessary re-renders
 const PageCard = memo(({ page, onRemoveIcon, onSetCalendarIcon }) => (
   <Col key={page.id}>
@@ -57,6 +73,20 @@ const PageCard = memo(({ page, onRemoveIcon, onSetCalendarIcon }) => (
           ))}
         </div>
 
+        {page.labels && page.labels.length > 0 && (
+          <div className="mt-2">
+            {page.labels.map(label => (
+              <Badge 
+                key={label.name}
+                bg={getBootstrapColor(label.color)}
+                className="me-1"
+              >
+                {label.name}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         {page.resources && page.resources.length > 0 && (
           <div className="mt-2">
             {page.resources.map(resource => (
@@ -81,8 +111,10 @@ function App() {
   const [error, setError] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [pagesToModify, setPagesToModify] = useState([]);
   const [pagesToRemoveIcons, setPagesToRemoveIcons] = useState([]);
 
@@ -95,10 +127,10 @@ function App() {
       }
       const data = await response.json();
       setPages(data);
-      setLoading(false);
     } catch (err) {
       console.error('Error fetching pages:', err);
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -245,10 +277,53 @@ function App() {
     }
   }, [pagesToModify, isUpdating]);
 
+  const handleCreateMonthlyPages = useCallback(async () => {
+    if (isCreating) return;
+
+    try {
+      setIsCreating(true);
+      setLoading(true); // Set loading state while creating pages
+      
+      const response = await fetch('/api/notion-pages/bulk-create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setShowCreateModal(false);
+        
+        // Refresh the page list
+        await fetchPages();
+        
+        // Show success message
+        alert(`Created ${result.count} monthly pages for 2025`);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to create pages');
+      }
+    } catch (err) {
+      console.error('Error creating monthly pages:', err);
+      alert('Failed to create monthly pages: ' + err.message);
+    } finally {
+      setIsCreating(false);
+      setLoading(false); // Reset loading state
+    }
+  }, [isCreating, fetchPages]);
+
   if (loading) {
     return (
       <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-        <div>Loading...</div>
+        <div className="text-center">
+          <div className="mb-2">
+            {isCreating ? 'Creating pages and refreshing...' : 'Loading pages...'}
+          </div>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
       </Container>
     );
   }
@@ -266,6 +341,16 @@ function App() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">Notion Pages</h2>
         <div className="d-flex gap-2">
+          <Button 
+            variant="outline-success"
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="px-3"
+            disabled={isCreating}
+          >
+            <i className="bi bi-calendar-plus me-2"></i>
+            {isCreating ? 'Creating...' : 'Create Monthly Pages'}
+          </Button>
           <Button 
             variant="outline-primary"
             size="sm"
@@ -288,6 +373,53 @@ function App() {
           </Button>
         </div>
       </div>
+
+      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Create Monthly Pages</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>This will create 12 pages with the following properties:</p>
+          <ListGroup>
+            <ListGroup.Item>
+              <i className="bi bi-calendar me-2"></i>
+              Names: January 2025 - December 2025
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <i className="bi bi-emoji-smile me-2"></i>
+              Icon: 🗓️
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <i className="bi bi-tags me-2"></i>
+              Type: Nota
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <i className="bi bi-link-45deg me-2"></i>
+              Resource: Calendars GDeP
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <i className="bi bi-tag me-2"></i>
+              Label: 2026
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <i className="bi bi-check2-square me-2"></i>
+              Status: To do
+            </ListGroup.Item>
+          </ListGroup>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={handleCreateMonthlyPages}
+            disabled={isCreating}
+          >
+            {isCreating ? 'Creating...' : 'Create Pages'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={showUpdateModal} onHide={() => setShowUpdateModal(false)}>
         <Modal.Header closeButton>
